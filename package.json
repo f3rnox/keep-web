@@ -1,5 +1,6 @@
 {
   "name": "keep-web",
+  "description": "A Node.JS Note-Taking Web UI",
   "version": "0.1.0",
   "private": true,
   "scripts": {
