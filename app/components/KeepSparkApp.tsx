@@ -53,8 +53,7 @@ export function KeepSparkApp(): JSX.Element {
   const counts = useMemo<Record<NoteView, number>>(
     (): Record<NoteView, number> => ({
       notes: notes.filter(
-        (note: Note): boolean =>
-          !note.trashed && !note.archived && note.listId === null,
+        (note: Note): boolean => !note.trashed && !note.archived,
       ).length,
       lists: lists.length,
       archive: notes.filter((note: Note): boolean => !note.trashed && note.archived).length,
@@ -64,7 +63,6 @@ export function KeepSparkApp(): JSX.Element {
   )
 
   const listFilter: ListFilter = useMemo((): ListFilter => {
-    if (view === 'notes') return 'inbox'
     if (view === 'lists' && selectedListId) return selectedListId
     return 'all'
   }, [view, selectedListId])
