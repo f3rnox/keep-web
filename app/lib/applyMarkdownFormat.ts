@@ -1,7 +1,10 @@
+import type { MarkdownFormatResult } from './applyMarkdownFormat'
+import { applyChecklistFormat } from './applyChecklistFormat'
+
 /**
  * Markdown formatting actions supported by the note editor toolbar.
  */
-export type MarkdownFormat = 'bold' | 'italic' | 'h1' | 'h2' | 'h3'
+export type MarkdownFormat = 'bold' | 'italic' | 'h1' | 'h2' | 'h3' | 'checklist'
 
 /**
  * Result of applying a markdown transform to a textarea value.
@@ -38,6 +41,10 @@ export function applyMarkdownFormat(
     const start: number = selectionStart + marker.length
     const end: number = start + inner.length
     return { value: newValue, selectionStart: start, selectionEnd: end }
+  }
+
+  if (format === 'checklist') {
+    return applyChecklistFormat(value, selectionStart, selectionEnd)
   }
 
   const lineStart: number = value.lastIndexOf('\n', selectionStart - 1) + 1

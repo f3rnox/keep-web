@@ -510,6 +510,8 @@ export function EditNoteModal({
                 <NoteContent
                   content={content}
                   className='text-sm text-foreground'
+                  interactive
+                  onContentChange={setContent}
                   onNoteLinkClick={(linkTitle: string): void => {
                     const target: Note | undefined = notes.find(
                       (candidate: Note): boolean =>

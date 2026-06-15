@@ -3,6 +3,7 @@
 import { useCallback, type JSX, type RefObject } from 'react'
 import { applyMarkdownToTextarea } from '../lib/applyMarkdownToTextarea'
 import type { MarkdownFormat } from '../lib/applyMarkdownFormat'
+import { Icon } from './Icon'
 
 /**
  * Props for the markdown formatting toolbar.
@@ -13,7 +14,7 @@ export interface MarkdownToolbarProps {
   onChange: (value: string) => void
 }
 
-const BUTTONS: ReadonlyArray<{ format: MarkdownFormat; label: string; display: string }> = [
+const TEXT_BUTTONS: ReadonlyArray<{ format: MarkdownFormat; label: string; display: string }> = [
   { format: 'bold', label: 'Bold', display: 'B' },
   { format: 'italic', label: 'Italic', display: 'I' },
   { format: 'h1', label: 'Heading 1', display: 'H1' },
@@ -23,7 +24,7 @@ const BUTTONS: ReadonlyArray<{ format: MarkdownFormat; label: string; display: s
 
 /**
  * Toolbar with buttons that insert markdown formatting around the textarea
- * selection (bold, italic, and heading levels 1–3).
+ * selection (bold, italic, headings, and checklist items).
  *
  * @param props.textareaRef Ref to the content textarea being edited.
  * @param props.value Current textarea value.
@@ -49,7 +50,7 @@ export function MarkdownToolbar({
       aria-label='Formatting'
       className='flex flex-wrap items-center gap-0.5 border-b border-border/60 pb-2'
     >
-      {BUTTONS.map(
+      {TEXT_BUTTONS.map(
         (button: { format: MarkdownFormat; label: string; display: string }): JSX.Element => (
           <button
             key={button.format}
@@ -66,6 +67,16 @@ export function MarkdownToolbar({
           </button>
         ),
       )}
+      <button
+        type='button'
+        aria-label='Checklist'
+        title='Checklist'
+        onMouseDown={(event): void => event.preventDefault()}
+        onClick={(): void => apply('checklist')}
+        className='inline-flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+      >
+        <Icon name='check' size={16} />
+      </button>
     </div>
   )
 }

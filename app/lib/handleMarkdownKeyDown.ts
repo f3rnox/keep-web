@@ -1,5 +1,6 @@
 import type { KeyboardEvent } from 'react'
 import { applyMarkdownToTextarea } from './applyMarkdownToTextarea'
+import { handleChecklistEnter } from './handleChecklistEnter'
 import { resolveMarkdownShortcut } from './resolveMarkdownShortcut'
 
 /**
@@ -15,6 +16,26 @@ export function handleMarkdownKeyDown(
   value: string,
   onChange: (value: string) => void,
 ): boolean {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    const checklistResult = handleChecklistEnter(
+      value,
+      event.currentTarget.selectionStart,
+      event.currentTarget.selectionEnd,
+    )
+    if (checklistResult !== null) {
+      event.preventDefault()
+      onChange(checklistResult.value)
+      requestAnimationFrame((): void => {
+        event.currentTarget.focus()
+        event.currentTarget.setSelectionRange(
+          checklistResult.selectionStart,
+          checklistResult.selectionEnd,
+        )
+      })
+      return true
+    }
+  }
+
   const format = resolveMarkdownShortcut(event)
   if (!format) return false
 

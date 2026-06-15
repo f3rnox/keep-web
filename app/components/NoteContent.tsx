@@ -43,8 +43,20 @@ export function NoteContent({
   const nodes: ReactNode[] = []
   let markdownBuffer: string[] = []
   let bufferStart: number = 0
+  let checklistBuffer: ReactNode[] = []
+
+  const flushChecklist = (): void => {
+    if (checklistBuffer.length === 0) return
+    nodes.push(
+      <div key={`checklist-${nodes.length}`} className='my-1 space-y-0.5'>
+        {checklistBuffer}
+      </div>,
+    )
+    checklistBuffer = []
+  }
 
   const flushMarkdown = (endIndex: number): void => {
+    flushChecklist()
     if (markdownBuffer.length === 0) return
     const block: string = markdownBuffer.join('\n')
     nodes.push(
@@ -69,7 +81,7 @@ export function NoteContent({
       const isChecked: boolean = checked !== null
       const label: string = (checked?.[3] ?? unchecked?.[3] ?? '').trim()
 
-      nodes.push(
+      checklistBuffer.push(
         <label
           key={`check-${index}`}
           className={`flex items-start gap-2 py-0.5 ${interactive ? 'cursor-pointer' : ''}`}
@@ -85,8 +97,8 @@ export function NoteContent({
             checked={isChecked}
             readOnly
             tabIndex={-1}
-            className='mt-1 h-3.5 w-3.5 shrink-0 accent-accent'
-            onClick={(event): void => event.stopPropagation()}
+            aria-label={label.length > 0 ? label : 'Checklist item'}
+            className='pointer-events-none mt-1 h-3.5 w-3.5 shrink-0 accent-accent'
           />
           <span className={isChecked ? 'text-muted line-through' : ''}>{label}</span>
         </label>,
@@ -95,10 +107,12 @@ export function NoteContent({
       return
     }
 
+    flushChecklist()
     if (markdownBuffer.length === 0) bufferStart = index
     markdownBuffer.push(line)
   })
 
+  flushChecklist()
   flushMarkdown(lines.length)
 
   return <div className={className}>{nodes}</div>
