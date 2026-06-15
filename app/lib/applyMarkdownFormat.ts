@@ -1,4 +1,3 @@
-import type { MarkdownFormatResult } from './applyMarkdownFormat'
 import { applyChecklistFormat } from './applyChecklistFormat'
 
 /**
