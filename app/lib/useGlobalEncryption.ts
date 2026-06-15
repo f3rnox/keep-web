@@ -11,7 +11,7 @@ import {
   subscribeGlobalEncryption,
 } from './globalEncryptionSession'
 import { unlockAllEncryptedNotes } from './unlockAllEncryptedNotes'
-import { hasMasterPasswordSnapshot, subscribeMasterPassword } from './masterPasswordStore'
+import { hasMasterPasswordSnapshot, subscribeMasterPassword, getMasterPasswordServerSnapshot } from './masterPasswordStore'
 
 /**
  * API exposed by the `useGlobalEncryption` hook.
@@ -37,14 +37,19 @@ export function useGlobalEncryption(notes: ReadonlyArray<Note>): GlobalEncryptio
     (): number => 0,
   )
 
-  const masterVersion: number = useSyncExternalStore(
+  const hasMasterPassword: boolean = useSyncExternalStore(
     subscribeMasterPassword,
-    (): number => (hasMasterPasswordSnapshot() ? 1 : 0),
-    (): number => 0,
+    hasMasterPasswordSnapshot,
+    (): boolean => getMasterPasswordServerSnapshot() !== null,
+  )
+
+  const isUnlocked: boolean = useSyncExternalStore(
+    subscribeGlobalEncryption,
+    isGlobalEncryptionUnlocked,
+    (): boolean => false,
   )
 
   void globalVersion
-  void masterVersion
 
   const encryptedNotes: ReadonlyArray<Note> = useMemo(
     (): ReadonlyArray<Note> => notes.filter((note: Note): boolean => isNoteEncrypted(note)),
@@ -65,8 +70,8 @@ export function useGlobalEncryption(notes: ReadonlyArray<Note>): GlobalEncryptio
   }, [])
 
   return {
-    hasMasterPassword: hasMasterPasswordSnapshot(),
-    isUnlocked: isGlobalEncryptionUnlocked(),
+    hasMasterPassword,
+    isUnlocked,
     encryptedCount: encryptedNotes.length,
     unlockedCount,
     unlockAll,

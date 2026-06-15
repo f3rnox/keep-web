@@ -6,6 +6,7 @@ import { lockGlobalEncryptionSession } from './globalEncryptionSession'
 import {
   clearMasterPasswordVerifier,
   getMasterPasswordVerifierSnapshot,
+  getMasterPasswordServerSnapshot,
   hasMasterPasswordSnapshot,
   setMasterPasswordVerifier,
   subscribeMasterPassword,
@@ -27,15 +28,11 @@ export interface MasterPasswordApi {
  * Subscribes to the configured master encryption password preference.
  */
 export function useMasterPassword(): MasterPasswordApi {
-  const version: number = useSyncExternalStore(
+  const hasMasterPassword: boolean = useSyncExternalStore(
     subscribeMasterPassword,
-    (): number => (hasMasterPasswordSnapshot() ? 1 : 0),
-    (): number => 0,
+    hasMasterPasswordSnapshot,
+    (): boolean => getMasterPasswordServerSnapshot() !== null,
   )
-
-  void version
-
-  const hasMasterPassword: boolean = hasMasterPasswordSnapshot()
 
   const setMasterPassword = useCallback(async (password: string): Promise<void> => {
     const verifier = await hashMasterPasswordVerifier(password)

@@ -25,6 +25,7 @@ import { useRecentSearches } from '../lib/useRecentSearches'
 import { useReminders } from '../lib/useReminders'
 import { useSortPreference } from '../lib/useSortPreference'
 import { BulkActionBar } from './BulkActionBar'
+import { ConfirmModal } from './ConfirmModal'
 import { EditNoteModal, type EditNoteSavePatch } from './EditNoteModal'
 import { EmptyState } from './EmptyState'
 import { Header } from './Header'
@@ -49,6 +50,16 @@ import { useNoteLayout } from '../lib/useNoteLayout'
  */
 export interface KeepSparkAppProps {
   initialQuery?: string
+}
+
+/**
+ * Pending confirmation shown before irreversible delete actions.
+ */
+interface ConfirmRequest {
+  title: string
+  description: string
+  confirmLabel: string
+  onConfirm: () => void
 }
 
 /**
@@ -92,6 +103,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   const [editing, setEditing] = useState<Note | null>(null)
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState<boolean>(false)
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null)
   const { layout, setLayout } = useNoteLayout()
 
   const searchRef = useRef<HTMLInputElement | null>(null)
@@ -211,6 +223,138 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
     [notes],
   )
 
+  const closeConfirm = useCallback((): void => setConfirmRequest(null), [])
+
+  const requestMoveToTrash = useCallback(
+    (id: string): void => {
+      const note: Note | undefined = notes.find((item: Note): boolean => item.id === id)
+      const title: string =
+        note !== undefined && note.title.trim().length > 0 ? note.title.trim() : 'Untitled note'
+
+      setConfirmRequest({
+        title: 'Move to trash?',
+        description: `"${title}" will be moved to trash. You can restore it from the Trash view.`,
+        confirmLabel: 'Move to trash',
+        onConfirm: (): void => {
+          setTrashed(id, true)
+          if (editing?.id === id) setEditing(null)
+          setConfirmRequest(null)
+        },
+      })
+    },
+    [notes, setTrashed, editing],
+  )
+
+  const requestSetTrashed = useCallback(
+    (id: string, trashed: boolean): void => {
+      if (!trashed) {
+        setTrashed(id, false)
+        return
+      }
+      requestMoveToTrash(id)
+    },
+    [setTrashed, requestMoveToTrash],
+  )
+
+  const requestBulkMoveToTrash = useCallback((): void => {
+    const count: number = selectedIds.size
+    const ids: ReadonlyArray<string> = [...selectedIds]
+
+    setConfirmRequest({
+      title: count === 1 ? 'Move note to trash?' : `Move ${count} notes to trash?`,
+      description:
+        count === 1
+          ? 'This note will be moved to trash. You can restore it from the Trash view.'
+          : `These ${count} notes will be moved to trash. You can restore them from the Trash view.`,
+      confirmLabel: 'Move to trash',
+      onConfirm: (): void => {
+        bulkSetTrashed(ids, true)
+        clearSelection()
+        setConfirmRequest(null)
+      },
+    })
+  }, [selectedIds, bulkSetTrashed, clearSelection])
+
+  const requestDeleteForever = useCallback(
+    (id: string): void => {
+      const note: Note | undefined = notes.find((item: Note): boolean => item.id === id)
+      const title: string =
+        note !== undefined && note.title.trim().length > 0 ? note.title.trim() : 'Untitled note'
+
+      setConfirmRequest({
+        title: 'Delete note permanently?',
+        description: `"${title}" will be removed forever. This cannot be undone.`,
+        confirmLabel: 'Delete forever',
+        onConfirm: (): void => {
+          deleteForever(id)
+          setConfirmRequest(null)
+        },
+      })
+    },
+    [notes, deleteForever],
+  )
+
+  const requestBulkDeleteForever = useCallback((): void => {
+    const count: number = selectedIds.size
+    const ids: ReadonlyArray<string> = [...selectedIds]
+
+    setConfirmRequest({
+      title: count === 1 ? 'Delete note permanently?' : `Delete ${count} notes permanently?`,
+      description:
+        count === 1
+          ? 'This note will be removed forever. This cannot be undone.'
+          : `These ${count} notes will be removed forever. This cannot be undone.`,
+      confirmLabel: 'Delete forever',
+      onConfirm: (): void => {
+        bulkDeleteForever(ids)
+        clearSelection()
+        setConfirmRequest(null)
+      },
+    })
+  }, [selectedIds, bulkDeleteForever, clearSelection])
+
+  const requestDeleteList = useCallback(
+    (id: string): void => {
+      const list: NamedList | undefined = lists.find((item: NamedList): boolean => item.id === id)
+      const name: string = list?.name ?? 'this list'
+      const noteCount: number = notes.filter(
+        (note: Note): boolean => note.listId === id && !note.trashed,
+      ).length
+
+      setConfirmRequest({
+        title: `Delete "${name}"?`,
+        description:
+          noteCount > 0
+            ? `The list will be removed. ${noteCount} note${noteCount === 1 ? '' : 's'} will stay in your library without this list.`
+            : 'This list will be removed. This cannot be undone.',
+        confirmLabel: 'Delete list',
+        onConfirm: (): void => {
+          deleteList(id)
+          if (selectedListId === id) setSelectedListId(null)
+          setConfirmRequest(null)
+        },
+      })
+    },
+    [lists, notes, deleteList, selectedListId],
+  )
+
+  const requestEmptyTrash = useCallback((): void => {
+    const count: number = counts.trash
+
+    setConfirmRequest({
+      title: 'Empty trash?',
+      description:
+        count === 1
+          ? '1 note in trash will be permanently deleted. This cannot be undone.'
+          : `${count} notes in trash will be permanently deleted. This cannot be undone.`,
+      confirmLabel: 'Empty trash',
+      onConfirm: (): void => {
+        emptyTrash()
+        setConfirmRequest(null)
+      },
+    })
+  }, [counts.trash, emptyTrash])
+
   const closeModal = useCallback((): void => setEditing(null), [])
 
   const handleSearchCommit = useCallback(
@@ -256,8 +400,8 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
         onToggleSelect={toggleSelect}
         onTogglePinned={togglePinned}
         onSetArchived={setArchived}
-        onSetTrashed={setTrashed}
-        onDeleteForever={deleteForever}
+        onSetTrashed={requestSetTrashed}
+        onDeleteForever={requestDeleteForever}
         onChangeColor={(id: string, color: NoteColor): void => updateNote(id, { color })}
         onSetListId={setListId}
         onCreateList={addList}
@@ -394,7 +538,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
               notes={notes}
               onOpen={(list: NamedList): void => setSelectedListId(list.id)}
               onCreate={addList}
-              onDelete={deleteList}
+              onDelete={requestDeleteList}
               onRename={(id: string, name: string): void => updateList(id, { name })}
               onDropNote={(listId: string, noteId: string): void => {
                 setListId(noteId, listId)
@@ -435,7 +579,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
             ) : null}
 
             {view === 'trash' ? (
-              <TrashBanner count={counts.trash} onEmpty={emptyTrash} />
+              <TrashBanner count={counts.trash} onEmpty={requestEmptyTrash} />
             ) : null}
 
             {renderNotes()}
@@ -452,18 +596,12 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
           bulkSetArchived(selectedIdList, true)
           clearSelection()
         }}
-        onTrash={(): void => {
-          bulkSetTrashed(selectedIdList, true)
-          clearSelection()
-        }}
+        onTrash={requestBulkMoveToTrash}
         onRestore={(): void => {
           bulkSetTrashed(selectedIdList, false)
           clearSelection()
         }}
-        onDeleteForever={(): void => {
-          bulkDeleteForever(selectedIdList)
-          clearSelection()
-        }}
+        onDeleteForever={requestBulkDeleteForever}
         onMoveToList={(listId: string | null): void => {
           bulkSetListId(selectedIdList, listId)
           clearSelection()
@@ -475,6 +613,17 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
         onCreateList={addList}
       />
 
+      {confirmRequest ? (
+        <ConfirmModal
+          title={confirmRequest.title}
+          description={confirmRequest.description}
+          confirmLabel={confirmRequest.confirmLabel}
+          destructive
+          onConfirm={confirmRequest.onConfirm}
+          onCancel={closeConfirm}
+        />
+      ) : null}
+
       {editingNote ? (
         <EditNoteModal
           key={editingNote.id}
@@ -484,7 +633,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
           onSave={(id: string, patch: EditNoteSavePatch): void => updateNote(id, patch)}
           onTogglePinned={togglePinned}
           onSetArchived={setArchived}
-          onSetTrashed={setTrashed}
+          onSetTrashed={requestSetTrashed}
           onSetListId={setListId}
           onCreateList={addList}
           onOpenNote={(note: Note): void => setEditing(note)}

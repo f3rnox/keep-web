@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import type { JSX, ReactNode } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { THEME_SCRIPT } from './lib/themeScript'
+import { ThemeBootstrapScript } from './components/ThemeBootstrapScript'
 import './globals.css'
 
 const geistSans = Geist({
@@ -35,7 +35,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} scrollbar-thin h-full antialiased [text-rendering:optimizeLegibility]`}
     >
       <body className='flex min-h-full flex-col bg-canvas font-sans text-foreground selection:bg-foreground selection:text-canvas'>
-        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <ThemeBootstrapScript />
         {children}
       </body>
     </html>
