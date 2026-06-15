@@ -65,7 +65,7 @@ export function ListPicker({
   }
 
   return (
-    <div className='relative' ref={wrapperRef}>
+    <div className={`relative${open ? ' z-[1]' : ''}`} ref={wrapperRef}>
       <IconButton
         label={`Move to list (${currentLabel})`}
         active={open}
@@ -78,7 +78,7 @@ export function ListPicker({
       </IconButton>
 
       {open ? (
-        <div className='absolute bottom-11 left-0 z-10 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-lg shadow-black/5'>
+        <div className='absolute bottom-11 left-0 z-50 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-lg shadow-black/5'>
           <p className='px-2.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted'>
             Move to
           </p>

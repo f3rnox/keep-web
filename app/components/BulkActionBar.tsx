@@ -43,7 +43,7 @@ export function BulkActionBar({
   if (count === 0) return null
 
   return (
-    <div className='safe-bottom fixed bottom-4 left-3 right-3 z-50 flex max-h-[40vh] flex-wrap items-center justify-center gap-2 overflow-y-auto rounded-xl border border-border bg-surface px-3 py-2.5 shadow-xl shadow-black/10 sm:bottom-6 sm:left-1/2 sm:right-auto sm:max-h-none sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:px-4'>
+    <div className='safe-bottom fixed bottom-4 left-3 right-3 z-50 flex max-h-[40vh] flex-wrap items-center justify-center gap-2 overflow-visible rounded-xl border border-border bg-surface px-3 py-2.5 shadow-xl shadow-black/10 sm:bottom-6 sm:left-1/2 sm:right-auto sm:max-h-none sm:w-max sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:px-4'>
       <span className='text-sm font-medium text-foreground'>{count} selected</span>
       <div className='h-4 w-px bg-border' />
       {view === 'trash' ? (

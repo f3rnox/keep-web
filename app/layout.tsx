@@ -1,11 +1,10 @@
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
 import type { JSX, ReactNode } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { ServiceWorkerRegistration } from './components/ServiceWorkerRegistration'
 import { SettingToast } from './components/SettingToast'
 import { SupabaseSyncProvider } from './components/SupabaseSyncProvider'
-import { THEME_SCRIPT } from './lib/themeScript'
+import { ThemeBootstrap } from './components/ThemeBootstrap'
 import './globals.css'
 
 const geistSans = Geist({
@@ -39,8 +38,8 @@ export const viewport: Viewport = {
 }
 
 /**
- * Root layout that mounts the global stylesheet, configures fonts, and applies
- * the no-FOUC theme bootstrap script before the app renders.
+ * Root layout that mounts the global stylesheet, configures fonts, and boots
+ * the theme before paint via a client layout effect.
  *
  * @param props.children The active page rendered inside the body.
  */
@@ -54,11 +53,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} scrollbar-thin h-full antialiased [text-rendering:optimizeLegibility]`}
     >
       <body className='flex min-h-full flex-col bg-canvas font-sans text-foreground selection:bg-foreground selection:text-canvas'>
-        <Script
-          id='keepspark-theme'
-          strategy='beforeInteractive'
-          dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
-        />
+        <ThemeBootstrap />
         <ServiceWorkerRegistration />
         <SupabaseSyncProvider />
         <SettingToast />

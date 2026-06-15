@@ -17,6 +17,21 @@
   --ring: #a8a29e;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --canvas: #0b0b0c;
+    --surface: #161618;
+    --surface-hover: #202023;
+    --border: #2a2a2e;
+    --foreground: #f4f4f3;
+    --muted: #9a958e;
+    --accent: #f4f4f3;
+    --on-accent: #161618;
+    --ring: #4b4b50;
+    color-scheme: dark;
+  }
+}
+
 [data-theme='dark'] {
   --canvas: #0b0b0c;
   --surface: #161618;

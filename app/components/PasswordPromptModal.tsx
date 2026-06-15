@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useState, type FormEvent, type JSX } from 'react'
+import { useCallback, useEffect, useState, type FormEvent, type JSX } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from './Icon'
 
 /**
@@ -48,19 +49,31 @@ export function PasswordPromptModal({
   const mismatch: boolean =
     requireConfirm && confirmPassword.length > 0 && password !== confirmPassword
 
-  return (
+  useEffect((): (() => void) => {
+    const handler = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onCancel()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return (): void => document.removeEventListener('keydown', handler)
+  }, [onCancel])
+
+  return createPortal(
     <div
       role='dialog'
       aria-modal='true'
       aria-label={title}
-      className='fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4'
+      className='fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm'
       onClick={onCancel}
     >
-      <form
-        onClick={(event): void => event.stopPropagation()}
-        onSubmit={handleSubmit}
-        className='safe-bottom w-full max-w-sm rounded-t-2xl border border-border bg-surface p-5 shadow-2xl shadow-black/20 sm:rounded-2xl'
-      >
+      <div className='safe-top safe-bottom flex min-h-full items-end justify-center p-4 sm:items-center'>
+        <form
+          onClick={(event): void => event.stopPropagation()}
+          onSubmit={handleSubmit}
+          className='my-auto w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-t-2xl border border-border bg-surface p-5 shadow-2xl shadow-black/20 sm:rounded-2xl'
+        >
         <div className='mb-4 flex items-start gap-3'>
           <span className='mt-0.5 text-muted'>
             <Icon name='lock' size={20} />
@@ -137,6 +150,8 @@ export function PasswordPromptModal({
           </button>
         </div>
       </form>
-    </div>
+      </div>
+    </div>,
+    document.body,
   )
 }

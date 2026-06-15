@@ -3,6 +3,9 @@
 import { useCallback, useState, type FormEvent, type JSX, type KeyboardEvent } from 'react'
 import { Icon } from './Icon'
 
+const FORM_CLASS: string =
+  'mx-auto flex w-full max-w-2xl items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm shadow-black/5'
+
 /**
  * Props for the inline task composer.
  */
@@ -37,24 +40,19 @@ export function TaskComposer({ listId = null, onCreate }: TaskComposerProps): JS
   }
 
   return (
-    <div className='flex w-full justify-center'>
-      <form
-        onSubmit={handleSubmit}
-        className='flex w-full max-w-2xl items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm shadow-black/5'
-      >
-        <span className='flex h-5 w-5 shrink-0 items-center justify-center rounded border border-border text-transparent'>
-          <Icon name='check' size={14} />
-        </span>
-        <input
-          type='text'
-          value={title}
-          onChange={(event): void => setTitle(event.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder='Add a task'
-          className='min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted'
-          aria-label='Add a task'
-        />
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className={FORM_CLASS}>
+      <span className='flex h-5 w-5 shrink-0 items-center justify-center rounded border border-border text-transparent'>
+        <Icon name='check' size={14} />
+      </span>
+      <input
+        type='text'
+        value={title}
+        onChange={(event): void => setTitle(event.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder='Add a task'
+        className='min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted'
+        aria-label='Add a task'
+      />
+    </form>
   )
 }

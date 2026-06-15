@@ -9,8 +9,6 @@ const DARK_THEMES: string = THEME_ORDER.filter(
   .join(',')
 
 /**
- * Render-blocking script injected at the top of the document body. It applies
- * the persisted (or system-preferred) theme to the document element before
- * React hydrates, preventing a flash of the wrong color scheme on load.
+ * Inline theme bootstrap source used to keep theme lists in sync across tooling.
  */
 export const THEME_SCRIPT: string = `(function(){try{var k='${THEME_STORAGE_KEY}';var s=localStorage.getItem(k);var d=window.matchMedia('(prefers-color-scheme: dark)').matches;var valid=[${VALID_THEMES}];var darkThemes=[${DARK_THEMES}];var t=s&&valid.indexOf(s)!==-1?s:(d?'dark':'light');var e=document.documentElement;var isDark=darkThemes.indexOf(t)!==-1;e.dataset.theme=t;e.classList.toggle('dark',isDark);e.style.colorScheme=isDark?'dark':'light';}catch(_){}})()`
