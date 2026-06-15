@@ -46,11 +46,11 @@ export function NotificationsSettingsPanel(): JSX.Element {
     <div className='space-y-8'>
       <SettingsSection
         title='Due-date reminders'
-        description='KeepSpark can notify you when a note with a due date becomes overdue.'
+        description='KeepSpark can notify you when a note or task with a due date becomes overdue.'
       >
         <SettingsRow
           label='Browser notifications'
-          description='Required for reminder alerts. Notes with due dates trigger a notification once.'
+          description='Required for reminder alerts. Notes and tasks with due dates trigger a notification once.'
         >
           <span className='text-sm text-muted'>{permissionLabel}</span>
         </SettingsRow>

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import type { Note, NoteColor, NoteCipher } from './types'
 import { createNote } from './createNote'
 import { createTask } from './createTask'
+import { clearReminderNotified } from './reminderNotificationStore'
 import { reorderByIds } from './reorderByIds'
 import {
   canRedoNotes,
@@ -39,8 +40,9 @@ export interface NotesApi {
     labels?: ReadonlyArray<string>,
     listId?: string | null,
     encryption?: { encrypted: boolean, cipher: NoteCipher | null },
+    dueAt?: number | null,
   ) => Note | null
-  addTask: (title: string, listId?: string | null) => Note | null
+  addTask: (title: string, listId?: string | null, dueAt?: number | null) => Note | null
   toggleTaskDone: (id: string) => void
   updateNote: (id: string, patch: NoteUpdate, options?: { recordHistory?: boolean }) => void
   togglePinned: (id: string) => void
@@ -90,6 +92,7 @@ export function useNotes(): NotesApi {
       labels: ReadonlyArray<string> = [],
       listId: string | null = null,
       encryption?: { encrypted: boolean, cipher: NoteCipher | null },
+      dueAt: number | null = null,
     ): Note | null => {
       const trimmedTitle: string = title.trim()
       const trimmedContent: string = content.trim()
@@ -101,6 +104,7 @@ export function useNotes(): NotesApi {
         color,
         labels,
         listId,
+        dueAt,
         encrypted: isEncrypted,
         cipher: isEncrypted ? encryption?.cipher ?? null : null,
       }
@@ -113,11 +117,14 @@ export function useNotes(): NotesApi {
   )
 
   const addTask = useCallback(
-    (title: string, listId: string | null = null): Note | null => {
+    (title: string, listId: string | null = null, dueAt: number | null = null): Note | null => {
       const trimmed: string = title.trim()
       if (trimmed.length === 0) return null
 
-      const task: Note = createTask(trimmed, listId)
+      const task: Note = {
+        ...createTask(trimmed, listId),
+        dueAt,
+      }
       setNotes(
         (prev: ReadonlyArray<Note>): ReadonlyArray<Note> => [task, ...prev],
       )
@@ -144,6 +151,7 @@ export function useNotes(): NotesApi {
 
   const updateNote = useCallback(
     (id: string, patch: NoteUpdate, options?: { recordHistory?: boolean }): void => {
+      if ('dueAt' in patch) clearReminderNotified(id)
       setNotes(
         (prev: ReadonlyArray<Note>): ReadonlyArray<Note> =>
           prev.map(
@@ -226,6 +234,7 @@ export function useNotes(): NotesApi {
   }, [])
 
   const setDueAt = useCallback((id: string, dueAt: number | null): void => {
+    clearReminderNotified(id)
     setNotes(
       (prev: ReadonlyArray<Note>): ReadonlyArray<Note> =>
         prev.map(

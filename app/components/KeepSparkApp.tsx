@@ -31,13 +31,12 @@ import { BulkActionBar } from './BulkActionBar'
 import { ConfirmModal } from './ConfirmModal'
 import { EditNoteModal, type EditNoteSavePatch } from './EditNoteModal'
 import { EmptyState } from './EmptyState'
+import { AppSidebar } from './AppSidebar'
 import { Header } from './Header'
 import { LabelFilter } from './LabelFilter'
 import { LayoutSelector } from './LayoutSelector'
 import { EditorPaneSelector } from './EditorPaneSelector'
-import { ListBrowser } from './ListBrowser'
 import { ListDetailHeader } from './ListDetailHeader'
-import { NavTabs } from './NavTabs'
 import { NoteCard } from './NoteCard'
 import { NoteEditor, type NoteEditorHandle } from './NoteEditor'
 import { NoteList } from './NoteList'
@@ -87,6 +86,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
     setArchived,
     setTrashed,
     setListId,
+    setDueAt,
     deleteForever,
     emptyTrash,
     reorderNotes,
@@ -99,7 +99,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
     redo,
   } = useNotes()
 
-  const { lists, addList, updateList, deleteList, reorderLists } = useLists()
+  const { lists, addList, updateList, deleteList } = useLists()
   const { sort, setSort: setSortPreference } = useSortPreference()
   const { recents, commitSearch, removeRecent, clearRecents } = useRecentSearches()
 
@@ -115,6 +115,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set())
   const [selectionMode, setSelectionMode] = useState<boolean>(false)
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const { layout, setLayout, editorPane, setEditorPane } = useNoteLayout()
   const isDesktop: boolean = useMediaQuery('(min-width: 1024px)')
 
@@ -133,16 +134,15 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
     return map
   }, [lists])
 
-  const counts = useMemo<Record<NoteView, number>>(
-    (): Record<NoteView, number> => ({
+  const counts = useMemo(
+    (): { notes: number, archive: number, trash: number } => ({
       notes: notes.filter(
         (note: Note): boolean => !note.trashed && !note.archived,
       ).length,
-      lists: lists.length,
       archive: notes.filter((note: Note): boolean => !note.trashed && note.archived).length,
       trash: notes.filter((note: Note): boolean => note.trashed).length,
     }),
-    [notes, lists],
+    [notes],
   )
 
   const listFilter: ListFilter = useMemo((): ListFilter => {
@@ -217,11 +217,36 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
     })
   }, [])
 
-  const handleSelectView = (next: NoteView): void => {
-    setView(next)
+  const handleSelectNotes = (): void => {
+    setView('notes')
     setSelectedListId(null)
     setLabelFilter(null)
     clearSelection()
+    setSidebarOpen(false)
+  }
+
+  const handleSelectList = (listId: string): void => {
+    setView('lists')
+    setSelectedListId(listId)
+    setLabelFilter(null)
+    clearSelection()
+    setSidebarOpen(false)
+  }
+
+  const handleSelectArchive = (): void => {
+    setView('archive')
+    setSelectedListId(null)
+    setLabelFilter(null)
+    clearSelection()
+    setSidebarOpen(false)
+  }
+
+  const handleSelectTrash = (): void => {
+    setView('trash')
+    setSelectedListId(null)
+    setLabelFilter(null)
+    clearSelection()
+    setSidebarOpen(false)
   }
 
   const handleNoteDrop = useCallback(
@@ -357,7 +382,10 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
         confirmLabel: 'Delete list',
         onConfirm: (): void => {
           deleteList(id)
-          if (selectedListId === id) setSelectedListId(null)
+          if (selectedListId === id) {
+            setSelectedListId(null)
+            setView('notes')
+          }
           setConfirmRequest(null)
         },
       })
@@ -426,6 +454,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
         onSetArchived={setArchived}
         onDeleteForever={requestDeleteForever}
         onSetListId={setListId}
+        onSetDueAt={setDueAt}
         onCreateList={addList}
       />
     )
@@ -495,7 +524,6 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   const showEditor: boolean =
     view === 'notes' || (view === 'lists' && selectedListId !== null)
   const searching: boolean = query.trim().length > 0
-  const browsingLists: boolean = view === 'lists' && selectedListId === null
   const editorListId: string | null =
     view === 'lists' && selectedListId ? selectedListId : null
 
@@ -555,14 +583,47 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
         onClearRecents={clearRecents}
       />
 
-      <div className='sticky top-14 z-20 border-b border-border bg-canvas/80 backdrop-blur sm:top-16'>
-        <div className='mx-auto w-full max-w-6xl px-3 sm:px-6'>
-          <div className='flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4'>
-            <div className='-mx-3 overflow-x-auto px-3 scrollbar-thin sm:mx-0 sm:overflow-visible sm:px-0'>
-              <NavTabs view={view} counts={counts} onSelect={handleSelectView} />
-            </div>
-            {!browsingLists ? (
-              <div className='flex shrink-0 items-center justify-end gap-1 overflow-x-auto pb-2 sm:gap-2 sm:pb-0'>
+      <div className='flex min-h-0 flex-1'>
+        {sidebarOpen ? (
+          <button
+            type='button'
+            aria-label='Close navigation'
+            className='fixed inset-0 z-30 bg-black/40 lg:hidden'
+            onClick={(): void => setSidebarOpen(false)}
+          />
+        ) : null}
+
+        <AppSidebar
+          view={view}
+          selectedListId={selectedListId}
+          lists={lists}
+          notes={notes}
+          notesCount={counts.notes}
+          archiveCount={counts.archive}
+          trashCount={counts.trash}
+          onSelectNotes={handleSelectNotes}
+          onSelectList={handleSelectList}
+          onSelectArchive={handleSelectArchive}
+          onSelectTrash={handleSelectTrash}
+          onCreateList={addList}
+          onDeleteList={requestDeleteList}
+          onDropNote={(listId: string, noteId: string): void => setListId(noteId, listId)}
+          className={`fixed bottom-0 left-0 top-14 z-40 transition-transform sm:top-16 lg:sticky lg:top-16 lg:z-0 lg:max-h-[calc(100vh-4rem)] lg:translate-x-0 ${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          }`}
+        />
+
+        <div className='flex min-w-0 flex-1 flex-col'>
+          <div className='sticky top-14 z-20 border-b border-border bg-canvas/80 backdrop-blur sm:top-16'>
+            <div className='mx-auto w-full max-w-6xl px-3 sm:px-6'>
+              <div className='flex items-center justify-end gap-1 overflow-x-auto py-2 sm:gap-2'>
+                <IconButton
+                  label='Open navigation'
+                  className='lg:hidden'
+                  onClick={(): void => setSidebarOpen(true)}
+                >
+                  <Icon name='menu' size={18} />
+                </IconButton>
                 {query.trim().length > 0 ? (
                   <SearchScopeSelector
                     scope={searchScope}
@@ -590,45 +651,22 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
                   <Icon name='chevronLeft' size={18} className='rotate-180' />
                 </IconButton>
               </div>
-            ) : null}
+              {view !== 'trash' ? (
+                <LabelFilter
+                  labels={availableLabels}
+                  selected={labelFilter}
+                  onSelect={setLabelFilter}
+                />
+              ) : null}
+            </div>
           </div>
-          {!browsingLists && view !== 'trash' ? (
-            <LabelFilter
-              labels={availableLabels}
-              selected={labelFilter}
-              onSelect={setLabelFilter}
-            />
-          ) : null}
-        </div>
-      </div>
 
-      <main
-        className={`mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-6 sm:py-10${selectionActive ? ' pb-28 sm:pb-10' : ''}${splitEditorActive ? ' lg:pr-[min(480px,42vw)]' : ''}`}
-      >
-        {browsingLists ? (
-          <>
-            <ListBrowser
-              lists={lists}
-              notes={notes}
-              onOpen={(list: NamedList): void => setSelectedListId(list.id)}
-              onCreate={addList}
-              onDelete={requestDeleteList}
-              onRename={(id: string, name: string): void => updateList(id, { name })}
-              onDropNote={(listId: string, noteId: string): void => {
-                setListId(noteId, listId)
-              }}
-              onReorderLists={reorderLists}
-            />
-            {lists.length === 0 ? (
-              <EmptyState view='lists' searching={false} />
-            ) : null}
-          </>
-        ) : (
-          <>
+          <main
+            className={`mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-6 sm:py-10${selectionActive ? ' pb-28 sm:pb-10' : ''}${splitEditorActive ? ' lg:pr-[min(480px,42vw)]' : ''}`}
+          >
             {view === 'lists' && selectedList ? (
               <ListDetailHeader
                 list={selectedList}
-                onBack={(): void => setSelectedListId(null)}
                 onRename={(id: string, name: string): void => updateList(id, { name })}
               />
             ) : null}
@@ -645,14 +683,15 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
                     labels: ReadonlyArray<string>,
                     listId?: string | null,
                     encryption?: { encrypted: boolean, cipher: NoteCipher | null },
+                    dueAt?: number | null,
                   ): Note | null =>
-                    addNote(title, content, color, labels, listId ?? null, encryption)
+                    addNote(title, content, color, labels, listId ?? null, encryption, dueAt ?? null)
                   }
                 />
                 <TaskComposer
                   listId={editorListId}
-                  onCreate={(title: string, listId?: string | null): void => {
-                    addTask(title, listId ?? null)
+                  onCreate={(title: string, listId?: string | null, dueAt?: number | null): void => {
+                    addTask(title, listId ?? null, dueAt ?? null)
                   }}
                 />
               </div>
@@ -664,9 +703,9 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
 
             {renderTasks()}
             {renderNotes()}
-          </>
-        )}
-      </main>
+          </main>
+        </div>
+      </div>
 
       <BulkActionBar
         count={selectedIds.size}

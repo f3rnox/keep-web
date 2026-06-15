@@ -22,8 +22,17 @@ export function sortTasks(tasks: ReadonlyArray<Note>): SortedTasks {
     else active.push(task)
   }
 
+  const compareActive = (a: Note, b: Note): number => {
+    const dueA: number | null = a.dueAt
+    const dueB: number | null = b.dueAt
+    if (dueA !== null && dueB !== null) return dueA - dueB
+    if (dueA !== null) return -1
+    if (dueB !== null) return 1
+    return b.updatedAt - a.updatedAt
+  }
+
   const byUpdated = (a: Note, b: Note): number => b.updatedAt - a.updatedAt
-  active.sort(byUpdated)
+  active.sort(compareActive)
   completed.sort(byUpdated)
 
   return { active, completed }

@@ -54,7 +54,7 @@ export const SETTINGS_CATEGORIES: ReadonlyArray<SettingsCategory> = [
     id: 'notifications',
     href: '/settings/notifications',
     label: 'Notifications',
-    description: 'Due-date reminders and permissions',
+    description: 'Due-date reminders for notes and tasks',
     icon: 'bell',
   },
   {

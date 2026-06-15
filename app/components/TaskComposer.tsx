@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type FormEvent, type JSX, type KeyboardEvent } from 'react'
 import { Icon } from './Icon'
+import { ReminderPicker } from './ReminderPicker'
 
 const FORM_CLASS: string =
   'mx-auto flex w-full max-w-2xl items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 shadow-sm shadow-black/5'
@@ -11,7 +12,7 @@ const FORM_CLASS: string =
  */
 export interface TaskComposerProps {
   listId?: string | null
-  onCreate: (title: string, listId?: string | null) => void
+  onCreate: (title: string, listId?: string | null, dueAt?: number | null) => void
 }
 
 /**
@@ -19,13 +20,15 @@ export interface TaskComposerProps {
  */
 export function TaskComposer({ listId = null, onCreate }: TaskComposerProps): JSX.Element {
   const [title, setTitle] = useState<string>('')
+  const [dueAt, setDueAt] = useState<number | null>(null)
 
   const submit = useCallback((): void => {
     const trimmed: string = title.trim()
     if (trimmed.length === 0) return
-    onCreate(trimmed, listId)
+    onCreate(trimmed, listId, dueAt)
     setTitle('')
-  }, [listId, onCreate, title])
+    setDueAt(null)
+  }, [dueAt, listId, onCreate, title])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
@@ -53,6 +56,7 @@ export function TaskComposer({ listId = null, onCreate }: TaskComposerProps): JS
         className='min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted'
         aria-label='Add a task'
       />
+      <ReminderPicker dueAt={dueAt} onChange={setDueAt} />
     </form>
   )
 }

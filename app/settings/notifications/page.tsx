@@ -9,7 +9,7 @@ export default function NotificationsSettingsPage(): JSX.Element {
   return (
     <SettingsShell
       title='Notifications'
-      description='Control browser notifications for note reminders.'
+      description='Control browser notifications for note and task reminders.'
     >
       <NotificationsSettingsPanel />
     </SettingsShell>

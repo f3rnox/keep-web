@@ -1,6 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+
+function subscribe(): () => void {
+  return (): void => undefined
+}
+
+function getClientSnapshot(): boolean {
+  return true
+}
+
+function getServerSnapshot(): boolean {
+  return false
+}
 
 /**
  * Returns whether the component has mounted in the browser. Stays `false` for the
@@ -8,11 +20,5 @@ import { useEffect, useState } from 'react'
  * after mount, avoiding hydration mismatches.
  */
 export function useIsClient(): boolean {
-  const [isClient, setIsClient] = useState<boolean>(false)
-
-  useEffect((): void => {
-    setIsClient(true)
-  }, [])
-
-  return isClient
+  return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot)
 }

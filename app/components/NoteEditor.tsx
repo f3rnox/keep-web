@@ -38,6 +38,7 @@ import { IconButton } from './IconButton'
 import { LabelEditor } from './LabelEditor'
 import { MarkdownToolbar } from './MarkdownToolbar'
 import { PasswordPromptModal } from './PasswordPromptModal'
+import { ReminderPicker } from './ReminderPicker'
 
 /**
  * Handle exposed to parent components for controlling the inline editor.
@@ -58,6 +59,7 @@ export interface NoteEditorProps {
     labels: ReadonlyArray<string>,
     listId?: string | null,
     encryption?: { encrypted: boolean, cipher: NoteCipher | null },
+    dueAt?: number | null,
   ) => Note | null | Promise<Note | null>
 }
 
@@ -75,6 +77,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
   const [content, setContent] = useState<string>('')
   const [labels, setLabels] = useState<ReadonlyArray<string>>([])
   const [color, setColor] = useState<NoteColor>('default')
+  const [dueAt, setDueAt] = useState<number | null>(null)
   const [showPalette, setShowPalette] = useState<boolean>(false)
   const [lockNote, setLockNote] = useState<boolean>(false)
   const [showConfigurePrompt, setShowConfigurePrompt] = useState<boolean>(false)
@@ -100,6 +103,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
     setContent('')
     setLabels([])
     setColor('default')
+    setDueAt(null)
     setExpanded(false)
     setShowPalette(false)
     setLockNote(false)
@@ -186,6 +190,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
           labels,
           listId,
           { encrypted: true, cipher: encrypted.cipher },
+          dueAt,
         )
         if (created) {
           setSessionKey(created.id, key, plaintextContent)
@@ -202,13 +207,13 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
     setSubmitError(null)
 
     try {
-      await onCreate(title, content, color, labels, listId)
+      await onCreate(title, content, color, labels, listId, undefined, dueAt)
       reset()
     } catch {
       setSubmitError('Could not create note')
       setSubmitting(false)
     }
-  }, [title, content, color, labels, listId, lockNote, hasMasterPassword, onCreate, reset])
+  }, [title, content, color, labels, listId, dueAt, lockNote, hasMasterPassword, onCreate, reset])
 
   useImperativeHandle(
     ref,
@@ -370,6 +375,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
                   >
                     <Icon name='palette' size={18} />
                   </IconButton>
+                  <ReminderPicker dueAt={dueAt} onChange={setDueAt} />
                 </div>
                 <button
                   type='button'
