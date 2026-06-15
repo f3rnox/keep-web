@@ -39,6 +39,7 @@ import { LabelEditor } from './LabelEditor'
 import { MarkdownToolbar } from './MarkdownToolbar'
 import { PasswordPromptModal } from './PasswordPromptModal'
 import { ReminderPicker } from './ReminderPicker'
+import { SuggestTitleButton } from './SuggestTitleButton'
 
 /**
  * Handle exposed to parent components for controlling the inline editor.
@@ -312,15 +313,18 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
         >
           {expanded ? (
             <div className='flex flex-col gap-1 px-4 py-3.5'>
-              <input
-                type='text'
-                value={title}
-                onChange={(event: ChangeEvent<HTMLInputElement>): void =>
-                  setTitle(event.target.value)
-                }
-                placeholder='Title'
-                className='w-full bg-transparent text-[15px] font-semibold tracking-tight text-foreground outline-none placeholder:font-normal placeholder:text-muted'
-              />
+              <div className='flex items-start gap-2'>
+                <input
+                  type='text'
+                  value={title}
+                  onChange={(event: ChangeEvent<HTMLInputElement>): void =>
+                    setTitle(event.target.value)
+                  }
+                  placeholder='Title'
+                  className='min-w-0 flex-1 bg-transparent text-[15px] font-semibold tracking-tight text-foreground outline-none placeholder:font-normal placeholder:text-muted'
+                />
+                <SuggestTitleButton content={content} onSuggested={setTitle} />
+              </div>
               <MarkdownToolbar
                 textareaRef={contentRef}
                 value={content}

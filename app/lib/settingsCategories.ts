@@ -11,6 +11,7 @@ export type SettingsCategoryId =
   | 'security'
   | 'sync'
   | 'data'
+  | 'ai'
   | 'shortcuts'
   | 'about'
 
@@ -77,6 +78,13 @@ export const SETTINGS_CATEGORIES: ReadonlyArray<SettingsCategory> = [
     label: 'Data & storage',
     description: 'Export, import, and reset local data',
     icon: 'archive',
+  },
+  {
+    id: 'ai',
+    href: '/settings/ai',
+    label: 'AI',
+    description: 'AI title suggestions and API keys',
+    icon: 'lightbulb',
   },
   {
     id: 'shortcuts',

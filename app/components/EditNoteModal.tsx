@@ -48,6 +48,7 @@ import { ListPicker } from './ListPicker'
 import { MarkdownToolbar } from './MarkdownToolbar'
 import { NoteContent } from './NoteContent'
 import { PasswordPromptModal } from './PasswordPromptModal'
+import { SuggestTitleButton } from './SuggestTitleButton'
 
 /**
  * Fields saved when closing the edit modal.
@@ -400,8 +401,13 @@ export function EditNoteModal({
                 value={title}
                 onChange={(event: ChangeEvent<HTMLInputElement>): void => setTitle(event.target.value)}
                 placeholder='Title'
-                className='w-full bg-transparent text-lg font-semibold tracking-tight outline-none placeholder:font-normal placeholder:text-muted'
+                className='min-w-0 flex-1 bg-transparent text-lg font-semibold tracking-tight outline-none placeholder:font-normal placeholder:text-muted'
                 autoFocus
+              />
+              <SuggestTitleButton
+                content={content}
+                onSuggested={setTitle}
+                disabled={!unlocked}
               />
             </div>
             <div className='flex shrink-0 items-center gap-1'>
