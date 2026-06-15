@@ -160,11 +160,11 @@ export const DEFAULT_KEYBOARD_SHORTCUTS: ReadonlyArray<KeyboardShortcut> = [
 const STORAGE_KEY = 'keepspark:shortcuts:v1'
 
 let snapshot: ReadonlyArray<KeyboardShortcut> = DEFAULT_KEYBOARD_SHORTCUTS
-let hydrated = false
+let storageHydrated = false
 const listeners: Set<() => void> = new Set()
 
-function ensureHydrated(): void {
-  if (hydrated) return
+function hydrateShortcutsFromStorage(): void {
+  if (storageHydrated) return
   if (globalThis.window === undefined) return
 
   try {
@@ -188,11 +188,23 @@ function ensureHydrated(): void {
     // Ignore errors, fallback to default
   }
 
-  hydrated = true
+  storageHydrated = true
+}
+
+function ensureHydrated(): void {
+  hydrateShortcutsFromStorage()
+}
+
+function notifyShortcutListeners(): void {
+  for (const listener of listeners) {
+    listener()
+  }
 }
 
 export function getShortcutsSnapshot(): ReadonlyArray<KeyboardShortcut> {
-  ensureHydrated()
+  if (!storageHydrated) {
+    return DEFAULT_KEYBOARD_SHORTCUTS
+  }
   return snapshot
 }
 
@@ -202,6 +214,15 @@ export function getShortcutsServerSnapshot(): ReadonlyArray<KeyboardShortcut> {
 
 export function subscribeShortcuts(listener: () => void): () => void {
   listeners.add(listener)
+
+  if (globalThis.window !== undefined && !storageHydrated) {
+    queueMicrotask((): void => {
+      if (storageHydrated) return
+      hydrateShortcutsFromStorage()
+      notifyShortcutListeners()
+    })
+  }
+
   return (): void => {
     listeners.delete(listener)
   }
@@ -236,9 +257,7 @@ export function setShortcutKeys(id: ShortcutId, keys: ReadonlyArray<string>): vo
   }
 
   // Notify listeners
-  for (const listener of listeners) {
-    listener()
-  }
+  notifyShortcutListeners()
 
   showSettingSaved('Shortcut updated')
 }
@@ -250,9 +269,7 @@ export function resetShortcuts(): void {
   snapshot = DEFAULT_KEYBOARD_SHORTCUTS
   globalThis.localStorage.removeItem(STORAGE_KEY)
 
-  for (const listener of listeners) {
-    listener()
-  }
+  notifyShortcutListeners()
 
   showSettingSaved('Shortcuts reset to default')
 }

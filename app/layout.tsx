@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import type { JSX, ReactNode } from 'react'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { ServiceWorkerRegistration } from './components/ServiceWorkerRegistration'
@@ -52,8 +53,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} scrollbar-thin h-full antialiased [text-rendering:optimizeLegibility]`}
     >
       <body className='flex min-h-full flex-col bg-canvas font-sans text-foreground selection:bg-foreground selection:text-canvas'>
-        <script
-          suppressHydrationWarning
+        <Script
+          id='keepspark-theme'
+          strategy='beforeInteractive'
           dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }}
         />
         <ServiceWorkerRegistration />
