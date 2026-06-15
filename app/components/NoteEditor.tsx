@@ -17,6 +17,7 @@ import type { NoteColor } from '../lib/types'
 import { getNoteColorClasses } from '../lib/colors'
 import { handleMarkdownKeyDown } from '../lib/handleMarkdownKeyDown'
 import { insertImageMarkdown } from '../lib/insertImageMarkdown'
+import { clipboardHasImages, dragHasImages } from '../lib/clipboardHasImages'
 import { readImageDataUrls } from '../lib/readImageDataUrls'
 import { ColorPicker } from './ColorPicker'
 import { Icon } from './Icon'
@@ -113,9 +114,26 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
     }
   }
 
-  const handleImageInsert = async (
-    event: ClipboardEvent<HTMLTextAreaElement> | DragEvent<HTMLTextAreaElement>,
-  ): Promise<void> => {
+  const handlePaste = async (event: ClipboardEvent<HTMLTextAreaElement>): Promise<void> => {
+    if (!clipboardHasImages(event.nativeEvent)) return
+    event.preventDefault()
+    const urls: ReadonlyArray<string> = await readImageDataUrls(event.nativeEvent)
+    if (urls.length === 0) return
+
+    const textarea: HTMLTextAreaElement | null = contentRef.current
+    const start: number = textarea?.selectionStart ?? content.length
+    const end: number = textarea?.selectionEnd ?? content.length
+    let next: string = content
+
+    for (const url of urls) {
+      next = insertImageMarkdown(next, url, start, end)
+    }
+
+    setContent(next)
+  }
+
+  const handleDrop = async (event: DragEvent<HTMLTextAreaElement>): Promise<void> => {
+    if (!dragHasImages(event.nativeEvent)) return
     event.preventDefault()
     const urls: ReadonlyArray<string> = await readImageDataUrls(event.nativeEvent)
     if (urls.length === 0) return
@@ -167,8 +185,8 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
               onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>): void => {
                 handleMarkdownKeyDown(event, content, setContent)
               }}
-              onPaste={handleImageInsert}
-              onDrop={handleImageInsert}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
               placeholder='Write something...'
               rows={3}
               className='w-full resize-none bg-transparent text-sm leading-relaxed text-foreground outline-none placeholder:text-muted'

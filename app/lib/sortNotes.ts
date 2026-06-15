@@ -46,6 +46,11 @@ export function sortNotes(
         const indexB: number = COLOR_ORDER.indexOf(b.color)
         return indexA - indexB
       }
+      case 'due': {
+        const dueA: number = a.dueAt ?? Number.MAX_SAFE_INTEGER
+        const dueB: number = b.dueAt ?? Number.MAX_SAFE_INTEGER
+        return dueA - dueB
+      }
       default:
         return 0
     }

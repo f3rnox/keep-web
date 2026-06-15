@@ -12,6 +12,7 @@ export interface NoteContentProps {
   content: string
   className?: string
   interactive?: boolean
+  searchQuery?: string
   onContentChange?: (next: string) => void
   onNoteLinkClick?: (title: string) => void
 }
@@ -32,6 +33,7 @@ export function NoteContent({
   content,
   className = '',
   interactive = false,
+  searchQuery = '',
   onContentChange,
   onNoteLinkClick,
 }: NoteContentProps): JSX.Element | null {
@@ -50,6 +52,7 @@ export function NoteContent({
         key={`md-${bufferStart}`}
         content={expandWikiLinks(block)}
         className=''
+        searchQuery={searchQuery}
         onNoteLinkClick={onNoteLinkClick}
       />,
     )

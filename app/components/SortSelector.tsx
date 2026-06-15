@@ -16,6 +16,7 @@ const SORT_OPTIONS: ReadonlyArray<{ value: NoteSort; label: string }> = [
   { value: 'created', label: 'Date created' },
   { value: 'title', label: 'Title' },
   { value: 'color', label: 'Color' },
+  { value: 'due', label: 'Due date' },
   { value: 'custom', label: 'Custom order' },
 ]
 

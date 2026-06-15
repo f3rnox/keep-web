@@ -1,5 +1,6 @@
 import Markdown from 'react-markdown'
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
+import { HighlightText } from './HighlightText'
 
 /**
  * Props for the `MarkdownBody` renderer.
@@ -7,6 +8,7 @@ import type { JSX } from 'react'
 export interface MarkdownBodyProps {
   content: string
   className?: string
+  searchQuery?: string
   onNoteLinkClick?: (title: string) => void
 }
 
@@ -15,22 +17,27 @@ const MARKDOWN_PROSE_CLASS: string =
 
 /**
  * Renders note body text as markdown inside a styled container.
- *
- * @param props.content Raw markdown string to render.
- * @param props.className Optional extra classes on the wrapper.
- * @param props.onNoteLinkClick Handler for wiki-style note links.
  */
 export function MarkdownBody({
   content,
   className = '',
+  searchQuery = '',
   onNoteLinkClick,
 }: MarkdownBodyProps): JSX.Element | null {
   if (content.length === 0) return null
+
+  const highlightChildren = (children: ReactNode): ReactNode => {
+    if (typeof children === 'string') {
+      return <HighlightText text={children} query={searchQuery} />
+    }
+    return children
+  }
 
   return (
     <div className={`${MARKDOWN_PROSE_CLASS} ${className}`.trim()}>
       <Markdown
         components={{
+          p: ({ children }): JSX.Element => <p>{highlightChildren(children)}</p>,
           a: ({ href, children }): JSX.Element => {
             if (href?.startsWith('note:') && onNoteLinkClick) {
               const title: string = decodeURIComponent(href.slice(5))

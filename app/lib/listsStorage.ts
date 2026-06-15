@@ -1,35 +1,27 @@
 import type { NoteList } from './types'
+import { coerceList } from './coerceList'
+import { loadListsFromIdb } from './loadListsFromIdb'
+import { migrateToIdb } from './migrateToIdb'
 
 /**
- * `localStorage` key under which named lists are serialized as JSON.
+ * `localStorage` key under which named lists were serialized before IndexedDB migration.
  */
 export const LISTS_STORAGE_KEY: string = 'keepspark:lists:v1'
 
 /**
- * Ensures a parsed list entry has the expected shape.
- *
- * @param entry Raw parsed object from storage.
+ * Loads lists from IndexedDB, running a one-time migration when needed.
  */
-function coerceList(entry: unknown): NoteList | null {
-  if (typeof entry !== 'object' || entry === null) return null
+export async function loadListsAsync(): Promise<ReadonlyArray<NoteList>> {
+  if (typeof window === 'undefined') return []
 
-  const candidate = entry as Partial<NoteList>
-  if (typeof candidate.id !== 'string' || typeof candidate.name !== 'string') {
-    return null
-  }
-
-  return {
-    id: candidate.id,
-    name: candidate.name,
-    createdAt: candidate.createdAt ?? Date.now(),
-    updatedAt: candidate.updatedAt ?? Date.now(),
-  }
+  await migrateToIdb()
+  return loadListsFromIdb()
 }
 
 /**
- * Loads the persisted lists collection from `localStorage`.
+ * Synchronous legacy loader kept for migration reads only.
  */
-export function loadLists(): ReadonlyArray<NoteList> {
+export function loadListsFromLocalStorage(): ReadonlyArray<NoteList> {
   if (typeof window === 'undefined') return []
 
   try {

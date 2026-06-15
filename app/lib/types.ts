@@ -33,7 +33,12 @@ export type ListFilter = 'inbox' | 'all' | string
 /**
  * Sort order applied to visible notes.
  */
-export type NoteSort = 'updated' | 'created' | 'title' | 'color' | 'custom'
+export type NoteSort = 'updated' | 'created' | 'title' | 'color' | 'due' | 'custom'
+
+/**
+ * Scope for full-text search across note collections.
+ */
+export type SearchScope = 'view' | 'all' | 'list' | 'archive' | 'trash'
 
 /**
  * A user-defined named list used to group notes.
@@ -59,6 +64,7 @@ export interface Note {
   archived: boolean
   trashed: boolean
   trashedAt: number | null
+  dueAt: number | null
   createdAt: number
   updatedAt: number
 }

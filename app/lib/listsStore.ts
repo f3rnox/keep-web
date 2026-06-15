@@ -1,26 +1,42 @@
 import type { NoteList } from './types'
-import { loadLists } from './listsStorage'
+import { loadListsAsync } from './listsStorage'
 import { saveLists } from './saveLists'
 
 let snapshot: ReadonlyArray<NoteList> = []
 let hydrated: boolean = false
+let hydrating: Promise<void> | null = null
 const listeners: Set<() => void> = new Set()
 
 /** Stable empty snapshot returned during SSR. */
 const SERVER_SNAPSHOT: ReadonlyArray<NoteList> = []
 
-function ensureHydrated(): void {
-  if (hydrated) return
-  if (typeof window === 'undefined') return
-  snapshot = loadLists()
-  hydrated = true
+function notifyListeners(): void {
+  for (const listener of listeners) listener()
+}
+
+function startHydration(): void {
+  if (hydrated || hydrating !== null || typeof window === 'undefined') return
+
+  hydrating = loadListsAsync()
+    .then((lists: ReadonlyArray<NoteList>): void => {
+      snapshot = lists
+      hydrated = true
+      hydrating = null
+      notifyListeners()
+    })
+    .catch((): void => {
+      snapshot = []
+      hydrated = true
+      hydrating = null
+      notifyListeners()
+    })
 }
 
 /**
- * Returns the current lists snapshot, lazily hydrating from `localStorage`.
+ * Returns the current lists snapshot, lazily hydrating from IndexedDB.
  */
 export function getListsSnapshot(): ReadonlyArray<NoteList> {
-  ensureHydrated()
+  startHydration()
   return snapshot
 }
 
@@ -52,10 +68,10 @@ export function setLists(
   updater: (prev: ReadonlyArray<NoteList>) => ReadonlyArray<NoteList>,
 ): void {
   if (typeof window === 'undefined') return
-  ensureHydrated()
+  startHydration()
   const next: ReadonlyArray<NoteList> = updater(snapshot)
   if (next === snapshot) return
   snapshot = next
   saveLists(snapshot)
-  for (const listener of listeners) listener()
+  notifyListeners()
 }

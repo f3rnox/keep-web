@@ -12,7 +12,7 @@ function ensureHydrated(): void {
   if (hydrated) return
   if (typeof window === 'undefined') return
   const raw: string | null = window.localStorage.getItem(STORAGE_KEY)
-  const valid: ReadonlyArray<NoteSort> = ['updated', 'created', 'title', 'color', 'custom']
+  const valid: ReadonlyArray<NoteSort> = ['updated', 'created', 'title', 'color', 'due', 'custom']
   if (raw !== null && (valid as ReadonlyArray<string>).includes(raw)) {
     snapshot = raw as NoteSort
   }

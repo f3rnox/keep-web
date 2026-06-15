@@ -10,7 +10,11 @@ export interface AppShortcutsOptions {
   onFocusSearch: () => void
   onCloseModal: () => void
   onTogglePin: () => void
+  onUndo: () => void
+  onRedo: () => void
+  onClearSelection: () => void
   modalOpen: boolean
+  selectionActive: boolean
 }
 
 /**
@@ -19,7 +23,17 @@ export interface AppShortcutsOptions {
  * @param options Shortcut callbacks and modal state.
  */
 export function useAppShortcuts(options: AppShortcutsOptions): void {
-  const { onNewNote, onFocusSearch, onCloseModal, onTogglePin, modalOpen } = options
+  const {
+    onNewNote,
+    onFocusSearch,
+    onCloseModal,
+    onTogglePin,
+    onUndo,
+    onRedo,
+    onClearSelection,
+    modalOpen,
+    selectionActive,
+  } = options
 
   useEffect((): (() => void) => {
     const handler = (event: KeyboardEvent): void => {
@@ -31,33 +45,48 @@ export function useAppShortcuts(options: AppShortcutsOptions): void {
         tag === 'textarea' ||
         (target instanceof HTMLElement && target.isContentEditable)
 
-      if (event.key === 'Escape' && modalOpen) {
-        event.preventDefault()
-        onCloseModal()
+      const mod: boolean = event.metaKey || event.ctrlKey
+
+      if (event.key === 'Escape') {
+        if (selectionActive) {
+          event.preventDefault()
+          onClearSelection()
+          return
+        }
+        if (modalOpen) {
+          event.preventDefault()
+          onCloseModal()
+        }
         return
       }
 
       if (isTyping) return
 
-      if (event.key === 'n' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (mod && event.key.toLowerCase() === 'z' && event.shiftKey) {
+        event.preventDefault()
+        onRedo()
+        return
+      }
+
+      if (mod && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        onUndo()
+        return
+      }
+
+      if (event.key === 'n' && !mod && !event.altKey) {
         event.preventDefault()
         onNewNote()
         return
       }
 
-      if (event.key === '/' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key === '/' && !mod && !event.altKey) {
         event.preventDefault()
         onFocusSearch()
         return
       }
 
-      if (
-        modalOpen &&
-        event.key === 'p' &&
-        !event.metaKey &&
-        !event.ctrlKey &&
-        !event.altKey
-      ) {
+      if (modalOpen && event.key === 'p' && !mod && !event.altKey) {
         event.preventDefault()
         onTogglePin()
       }
@@ -65,5 +94,15 @@ export function useAppShortcuts(options: AppShortcutsOptions): void {
 
     document.addEventListener('keydown', handler)
     return (): void => document.removeEventListener('keydown', handler)
-  }, [onNewNote, onFocusSearch, onCloseModal, onTogglePin, modalOpen])
+  }, [
+    onNewNote,
+    onFocusSearch,
+    onCloseModal,
+    onTogglePin,
+    onUndo,
+    onRedo,
+    onClearSelection,
+    modalOpen,
+    selectionActive,
+  ])
 }

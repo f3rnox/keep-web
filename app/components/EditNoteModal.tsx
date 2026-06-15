@@ -18,9 +18,11 @@ import { findBacklinks } from '../lib/findBacklinks'
 import { getNoteColorClasses } from '../lib/colors'
 import { handleMarkdownKeyDown } from '../lib/handleMarkdownKeyDown'
 import { insertImageMarkdown } from '../lib/insertImageMarkdown'
+import { clipboardHasImages, dragHasImages } from '../lib/clipboardHasImages'
 import { readImageDataUrls } from '../lib/readImageDataUrls'
 import { BacklinksPanel } from './BacklinksPanel'
 import { ColorPicker } from './ColorPicker'
+import { DueDatePicker } from './DueDatePicker'
 import { Icon } from './Icon'
 import { IconButton } from './IconButton'
 import { LabelEditor } from './LabelEditor'
@@ -42,6 +44,7 @@ export interface EditNoteModalProps {
       content: string
       color: NoteColor
       labels: ReadonlyArray<string>
+      dueAt: number | null
     },
   ) => void
   onTogglePinned: (id: string) => void
@@ -75,6 +78,7 @@ export function EditNoteModal({
   const [content, setContent] = useState<string>(note.content)
   const [labels, setLabels] = useState<ReadonlyArray<string>>(note.labels)
   const [color, setColor] = useState<NoteColor>(note.color)
+  const [dueAt, setDueAt] = useState<number | null>(note.dueAt)
   const [showPalette, setShowPalette] = useState<boolean>(false)
   const [showPreview, setShowPreview] = useState<boolean>(false)
   const contentRef = useRef<HTMLTextAreaElement | null>(null)
@@ -85,9 +89,9 @@ export function EditNoteModal({
   )
 
   const close = useCallback((): void => {
-    onSave(note.id, { title, content, color, labels })
+    onSave(note.id, { title, content, color, labels, dueAt })
     onClose()
-  }, [note.id, title, content, color, labels, onSave, onClose])
+  }, [note.id, title, content, color, labels, dueAt, onSave, onClose])
 
   useEffect((): (() => void) => {
     const handler = (event: globalThis.KeyboardEvent): void => {
@@ -104,9 +108,26 @@ export function EditNoteModal({
     event.stopPropagation()
   }
 
-  const handleImageInsert = async (
-    event: ClipboardEvent<HTMLTextAreaElement> | DragEvent<HTMLTextAreaElement>,
-  ): Promise<void> => {
+  const handlePaste = async (event: ClipboardEvent<HTMLTextAreaElement>): Promise<void> => {
+    if (!clipboardHasImages(event.nativeEvent)) return
+    event.preventDefault()
+    const urls: ReadonlyArray<string> = await readImageDataUrls(event.nativeEvent)
+    if (urls.length === 0) return
+
+    const textarea: HTMLTextAreaElement | null = contentRef.current
+    const start: number = textarea?.selectionStart ?? content.length
+    const end: number = textarea?.selectionEnd ?? content.length
+    let next: string = content
+
+    for (const url of urls) {
+      next = insertImageMarkdown(next, url, start, end)
+    }
+
+    setContent(next)
+  }
+
+  const handleDrop = async (event: DragEvent<HTMLTextAreaElement>): Promise<void> => {
+    if (!dragHasImages(event.nativeEvent)) return
     event.preventDefault()
     const urls: ReadonlyArray<string> = await readImageDataUrls(event.nativeEvent)
     if (urls.length === 0) return
@@ -195,8 +216,8 @@ export function EditNoteModal({
               onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>): void => {
                 handleMarkdownKeyDown(event, content, setContent)
               }}
-              onPaste={handleImageInsert}
-              onDrop={handleImageInsert}
+              onPaste={handlePaste}
+              onDrop={handleDrop}
               placeholder='Write something... Use [[Note Title]] to link notes.'
               rows={showPreview ? 10 : 8}
               className='min-h-[200px] w-full flex-1 resize-none bg-transparent px-5 py-3 text-[15px] leading-relaxed outline-none placeholder:text-muted'
@@ -224,6 +245,9 @@ export function EditNoteModal({
 
         <div className='px-5 pb-2'>
           <LabelEditor labels={labels} onChange={setLabels} />
+          <div className='mt-2'>
+            <DueDatePicker dueAt={dueAt} onChange={setDueAt} />
+          </div>
         </div>
 
         <BacklinksPanel backlinks={backlinks} onOpen={onOpenNote} />

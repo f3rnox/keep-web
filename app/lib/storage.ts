@@ -1,63 +1,37 @@
 import type { Note } from './types'
+import { coerceNote } from './coerceNote'
+import { loadNotesFromIdb } from './loadNotesFromIdb'
+import { migrateToIdb } from './migrateToIdb'
 import { purgeExpiredTrash } from './purgeExpiredTrash'
 
 /**
- * `localStorage` key under which the entire notes collection is serialized as
- * JSON. Bumped if the stored shape ever changes.
+ * `localStorage` key under which the entire notes collection was serialized as
+ * JSON before IndexedDB migration.
  */
 export const STORAGE_KEY: string = 'keepspark:notes:v1'
 
 /**
- * Ensures a parsed note entry has the expected shape, migrating older records
- * that predate newer fields.
- *
- * @param entry Raw parsed object from storage.
+ * Loads notes from IndexedDB, running a one-time migration when needed.
  */
-function coerceNote(entry: unknown): Note | null {
-  if (typeof entry !== 'object' || entry === null) return null
+export async function loadNotesAsync(): Promise<ReadonlyArray<Note>> {
+  if (typeof window === 'undefined') return []
 
-  const candidate = entry as Partial<Note>
-  if (
-    typeof candidate.id !== 'string' ||
-    typeof candidate.title !== 'string' ||
-    typeof candidate.content !== 'string'
-  ) {
-    return null
+  await migrateToIdb()
+  const notes: ReadonlyArray<Note> = await loadNotesFromIdb()
+  const purged: ReadonlyArray<Note> = purgeExpiredTrash(notes)
+
+  if (purged.length !== notes.length) {
+    const { saveNotesToIdb } = await import('./saveNotesToIdb')
+    await saveNotesToIdb(purged)
   }
 
-  const labels: ReadonlyArray<string> = Array.isArray(candidate.labels)
-    ? candidate.labels.filter((label: unknown): label is string => typeof label === 'string')
-    : []
-
-  const trashed: boolean = candidate.trashed ?? false
-  const trashedAt: number | null =
-    typeof candidate.trashedAt === 'number'
-      ? candidate.trashedAt
-      : trashed
-        ? (candidate.updatedAt ?? Date.now())
-        : null
-
-  return {
-    id: candidate.id,
-    title: candidate.title,
-    content: candidate.content,
-    labels,
-    color: candidate.color ?? 'default',
-    listId: typeof candidate.listId === 'string' ? candidate.listId : null,
-    pinned: candidate.pinned ?? false,
-    archived: candidate.archived ?? false,
-    trashed,
-    trashedAt,
-    createdAt: candidate.createdAt ?? Date.now(),
-    updatedAt: candidate.updatedAt ?? Date.now(),
-  }
+  return purged
 }
 
 /**
- * Loads the persisted notes collection from `localStorage`. Always returns an
- * array, even when storage is empty, missing, or contains malformed JSON.
+ * Synchronous legacy loader kept for migration reads only.
  */
-export function loadNotes(): ReadonlyArray<Note> {
+export function loadNotesFromLocalStorage(): ReadonlyArray<Note> {
   if (typeof window === 'undefined') return []
 
   try {
@@ -67,11 +41,9 @@ export function loadNotes(): ReadonlyArray<Note> {
     const parsed: unknown = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
 
-    const notes: ReadonlyArray<Note> = parsed
+    return parsed
       .map((entry: unknown): Note | null => coerceNote(entry))
       .filter((note: Note | null): note is Note => note !== null)
-
-    return purgeExpiredTrash(notes)
   } catch {
     return []
   }
