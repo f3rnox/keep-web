@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useShortcuts, matchesShortcut, type ShortcutId } from './keyboardShortcuts'
 
 /**
  * Options for the global keyboard shortcut handler.
@@ -23,6 +24,8 @@ export interface AppShortcutsOptions {
  * @param options Shortcut callbacks and modal state.
  */
 export function useAppShortcuts(options: AppShortcutsOptions): void {
+  const shortcuts = useShortcuts()
+
   const {
     onNewNote,
     onFocusSearch,
@@ -36,6 +39,11 @@ export function useAppShortcuts(options: AppShortcutsOptions): void {
   } = options
 
   useEffect((): (() => void) => {
+    const getKeys = (id: ShortcutId): ReadonlyArray<string> => {
+      const s = shortcuts.find((item) => item.id === id)
+      return s ? s.keys : []
+    };
+
     const handler = (event: KeyboardEvent): void => {
       const target: EventTarget | null = event.target
       const tag: string =
@@ -45,9 +53,7 @@ export function useAppShortcuts(options: AppShortcutsOptions): void {
         tag === 'textarea' ||
         (target instanceof HTMLElement && target.isContentEditable)
 
-      const mod: boolean = event.metaKey || event.ctrlKey
-
-      if (event.key === 'Escape') {
+      if (matchesShortcut(event, getKeys('close-modal-exit-selection'))) {
         if (selectionActive) {
           event.preventDefault()
           onClearSelection()
@@ -62,31 +68,31 @@ export function useAppShortcuts(options: AppShortcutsOptions): void {
 
       if (isTyping) return
 
-      if (mod && event.key.toLowerCase() === 'z' && event.shiftKey) {
+      if (matchesShortcut(event, getKeys('redo'))) {
         event.preventDefault()
         onRedo()
         return
       }
 
-      if (mod && event.key.toLowerCase() === 'z') {
+      if (matchesShortcut(event, getKeys('undo'))) {
         event.preventDefault()
         onUndo()
         return
       }
 
-      if (event.key === 'n' && !mod && !event.altKey) {
+      if (matchesShortcut(event, getKeys('new-note'))) {
         event.preventDefault()
         onNewNote()
         return
       }
 
-      if (event.key === '/' && !mod && !event.altKey) {
+      if (matchesShortcut(event, getKeys('focus-search'))) {
         event.preventDefault()
         onFocusSearch()
         return
       }
 
-      if (modalOpen && event.key === 'p' && !mod && !event.altKey) {
+      if (modalOpen && matchesShortcut(event, getKeys('toggle-pin'))) {
         event.preventDefault()
         onTogglePin()
       }
@@ -104,5 +110,6 @@ export function useAppShortcuts(options: AppShortcutsOptions): void {
     onClearSelection,
     modalOpen,
     selectionActive,
+    shortcuts,
   ])
 }
