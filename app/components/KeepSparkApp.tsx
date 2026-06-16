@@ -27,6 +27,7 @@ import { useNotes } from '../lib/useNotes'
 import { useRecentSearches } from '../lib/useRecentSearches'
 import { useReminders } from '../lib/useReminders'
 import { useSortPreference } from '../lib/useSortPreference'
+import { useTasksSectionCollapsed } from '../lib/useTasksSectionCollapsed'
 import { BulkActionBar } from './BulkActionBar'
 import { ConfirmModal } from './ConfirmModal'
 import { EditNoteModal, type EditNoteSavePatch } from './EditNoteModal'
@@ -101,6 +102,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
 
   const { lists, addList, updateList, deleteList } = useLists()
   const { sort, setSort: setSortPreference } = useSortPreference()
+  const { collapsed: tasksCollapsed, setCollapsed: setTasksCollapsed } = useTasksSectionCollapsed()
   const { recents, commitSearch, removeRecent, clearRecents } = useRecentSearches()
 
   useReminders(notes)
@@ -463,8 +465,18 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   const renderTasks = (): JSX.Element | null => {
     if (!hasTasks) return null
 
+    const tasksCollapsible: boolean =
+      view === 'notes' || (view === 'lists' && selectedListId !== null)
+    const taskCount: number = sortedTasks.active.length + sortedTasks.completed.length
+
     return (
-      <NoteSection label='Tasks'>
+      <NoteSection
+        label='Tasks'
+        collapsible={tasksCollapsible}
+        collapsed={tasksCollapsible ? tasksCollapsed : false}
+        onCollapsedChange={setTasksCollapsed}
+        count={taskCount}
+      >
         <TaskList>
           {sortedTasks.active.map(renderTaskCard)}
           {sortedTasks.completed.length > 0 ? (
