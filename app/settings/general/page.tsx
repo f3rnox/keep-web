@@ -9,7 +9,7 @@ export default function GeneralSettingsPage(): JSX.Element {
   return (
     <SettingsShell
       title='General'
-      description='Default sort order and note layout preferences.'
+      description='Default sort order, note layout, and new note defaults.'
     >
       <GeneralSettingsPanel />
     </SettingsShell>

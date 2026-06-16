@@ -19,7 +19,8 @@ import { sortTasks } from '../lib/sortTasks'
 import { isNoteEncrypted } from '../lib/isNoteEncrypted'
 import { reorderNotesInSection } from '../lib/reorderNotesInSection'
 import { sortNotes } from '../lib/sortNotes'
-import { setSort } from '../lib/sortStore'
+import { getDefaultLabelsForList } from '../lib/getDefaultLabelsForList'
+import { resolveNewNoteListId } from '../lib/resolveNewNoteListId'
 import { useAppShortcuts } from '../lib/useAppShortcuts'
 import { useAutoLock } from '../lib/useAutoLock'
 import { useLists } from '../lib/useLists'
@@ -27,6 +28,8 @@ import { useNotes } from '../lib/useNotes'
 import { useRecentSearches } from '../lib/useRecentSearches'
 import { useReminders } from '../lib/useReminders'
 import { useSortPreference } from '../lib/useSortPreference'
+import { useDefaultNoteSettings } from '../lib/useDefaultNoteSettings'
+import { setSort } from '../lib/sortStore'
 import { useTasksSectionCollapsed } from '../lib/useTasksSectionCollapsed'
 import { BulkActionBar } from './BulkActionBar'
 import { ConfirmModal } from './ConfirmModal'
@@ -103,6 +106,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   const { lists, addList, updateList, deleteList } = useLists()
   const { sort, setSort: setSortPreference } = useSortPreference()
   const { collapsed: tasksCollapsed, setCollapsed: setTasksCollapsed } = useTasksSectionCollapsed()
+  const { settings: defaultNoteSettings } = useDefaultNoteSettings()
   const { recents, commitSearch, removeRecent, clearRecents } = useRecentSearches()
 
   useReminders(notes)
@@ -187,6 +191,31 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   )
 
   const hasTasks: boolean = sortedTasks.active.length + sortedTasks.completed.length > 0
+
+  const validListIds = useMemo(
+    (): ReadonlySet<string> =>
+      new Set(lists.map((list: NamedList): string => list.id)),
+    [lists],
+  )
+
+  const contextListId: string | null =
+    view === 'lists' && selectedListId !== null ? selectedListId : null
+
+  const newNoteListId = useMemo(
+    (): string | null =>
+      resolveNewNoteListId(
+        contextListId,
+        defaultNoteSettings.defaultListId,
+        validListIds,
+      ),
+    [contextListId, defaultNoteSettings.defaultListId, validListIds],
+  )
+
+  const newNoteDefaultLabels = useMemo(
+    (): ReadonlyArray<string> =>
+      getDefaultLabelsForList(newNoteListId, defaultNoteSettings.labelsByListId),
+    [newNoteListId, defaultNoteSettings.labelsByListId],
+  )
 
   const availableLabels: ReadonlyArray<string> = useMemo((): ReadonlyArray<string> => {
     const active: ReadonlyArray<Note> = notes.filter(
@@ -536,8 +565,6 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
   const showEditor: boolean =
     view === 'notes' || (view === 'lists' && selectedListId !== null)
   const searching: boolean = query.trim().length > 0
-  const editorListId: string | null =
-    view === 'lists' && selectedListId ? selectedListId : null
 
   const selectedIdList: ReadonlyArray<string> = useMemo(
     (): ReadonlyArray<string> => [...selectedIds],
@@ -687,7 +714,8 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
               <div className='mb-8 space-y-3 sm:mb-12'>
                 <NoteEditor
                   ref={editorRef}
-                  listId={editorListId}
+                  listId={newNoteListId}
+                  defaultLabels={newNoteDefaultLabels}
                   onCreate={(
                     title: string,
                     content: string,
@@ -701,7 +729,7 @@ export function KeepSparkApp({ initialQuery = '' }: KeepSparkAppProps): JSX.Elem
                   }
                 />
                 <TaskComposer
-                  listId={editorListId}
+                  listId={newNoteListId}
                   onCreate={(title: string, listId?: string | null, dueAt?: number | null): void => {
                     addTask(title, listId ?? null, dueAt ?? null)
                   }}

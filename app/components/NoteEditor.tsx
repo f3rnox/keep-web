@@ -53,6 +53,7 @@ export interface NoteEditorHandle {
  */
 export interface NoteEditorProps {
   listId?: string | null
+  defaultLabels?: ReadonlyArray<string>
   onCreate: (
     title: string,
     content: string,
@@ -70,7 +71,7 @@ export interface NoteEditorProps {
  * when the user clicks outside.
  */
 export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function NoteEditor(
-  { listId = null, onCreate },
+  { listId = null, defaultLabels = [], onCreate },
   ref,
 ): JSX.Element {
   const [expanded, setExpanded] = useState<boolean>(false)
@@ -97,6 +98,7 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
 
   const wrapperRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLTextAreaElement | null>(null)
+  const wasExpandedRef = useRef<boolean>(false)
   const globalPassword: string | null = getEncryptionPassword()
 
   const reset = useCallback((): void => {
@@ -223,6 +225,13 @@ export const NoteEditor = forwardRef<NoteEditorHandle, NoteEditorProps>(function
     }),
     [],
   )
+
+  useEffect((): void => {
+    if (expanded && !wasExpandedRef.current) {
+      setLabels(defaultLabels)
+    }
+    wasExpandedRef.current = expanded
+  }, [expanded, defaultLabels])
 
   useEffect((): (() => void) | void => {
     if (!expanded) return

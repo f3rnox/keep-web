@@ -18,6 +18,7 @@ import { setDarkThemePreference, setLightThemePreference, setTheme } from './the
 import { clearMasterPasswordVerifier } from './masterPasswordStore'
 import { clearPasskeyUnlockRecord } from './passkeyUnlockStore'
 import { clearAutoLockMinutes } from './autoLockStore'
+import { resetDefaultNoteSettings } from './defaultNoteSettingsStore'
 import { lockGlobalEncryptionSession } from './globalEncryptionSession'
 import { runWithoutSettingToast } from './settingToastStore'
 
@@ -40,6 +41,7 @@ export async function clearAppData(): Promise<void> {
     clearMasterPasswordVerifier()
     clearPasskeyUnlockRecord()
     clearAutoLockMinutes()
+    resetDefaultNoteSettings()
   })
   lockGlobalEncryptionSession()
 

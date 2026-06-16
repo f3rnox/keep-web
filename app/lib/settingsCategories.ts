@@ -34,7 +34,7 @@ export const SETTINGS_CATEGORIES: ReadonlyArray<SettingsCategory> = [
     id: 'general',
     href: '/settings/general',
     label: 'General',
-    description: 'Default sort order and note layout',
+    description: 'Default sort, layout, and new note defaults',
     icon: 'menu',
   },
   {
