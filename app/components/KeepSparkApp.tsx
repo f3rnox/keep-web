@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState, type JSX } from 'react'
 import type {
+  EditNoteSavePatch,
   ListFilter,
   Note,
   NoteColor,
@@ -33,7 +34,7 @@ import { setSort } from '../lib/sortStore'
 import { useTasksSectionCollapsed } from '../lib/useTasksSectionCollapsed'
 import { BulkActionBar } from './BulkActionBar'
 import { ConfirmModal } from './ConfirmModal'
-import { EditNoteModal, type EditNoteSavePatch } from './EditNoteModal'
+import { EditNoteModal } from './EditNoteModal'
 import { EmptyState } from './EmptyState'
 import { AppSidebar } from './AppSidebar'
 import { Header } from './Header'

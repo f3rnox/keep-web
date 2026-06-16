@@ -18,6 +18,7 @@ import { setDarkThemePreference, setLightThemePreference, setTheme } from './the
 import { clearMasterPasswordVerifier } from './masterPasswordStore'
 import { clearPasskeyUnlockRecord } from './passkeyUnlockStore'
 import { clearAutoLockMinutes } from './autoLockStore'
+import { clearAllNoteVersionsFromIdb } from './clearAllNoteVersionsFromIdb'
 import { resetDefaultNoteSettings } from './defaultNoteSettingsStore'
 import { lockGlobalEncryptionSession } from './globalEncryptionSession'
 import { runWithoutSettingToast } from './settingToastStore'
@@ -26,7 +27,11 @@ import { runWithoutSettingToast } from './settingToastStore'
  * Removes all locally stored notes, lists, and preferences.
  */
 export async function clearAppData(): Promise<void> {
-  await Promise.all([saveNotesToIdb([]), saveListsToIdb([])])
+  await Promise.all([
+    saveNotesToIdb([]),
+    saveListsToIdb([]),
+    clearAllNoteVersionsFromIdb(),
+  ])
 
   setNotes((): ReadonlyArray<never> => [], { recordHistory: false })
   setLists((): ReadonlyArray<never> => [])

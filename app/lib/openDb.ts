@@ -2,7 +2,7 @@
 export const DB_NAME: string = 'keepspark'
 
 /** IndexedDB schema version. */
-export const DB_VERSION: number = 1
+export const DB_VERSION: number = 3
 
 /**
  * Opens (or creates) the KeepSpark IndexedDB database.
@@ -21,6 +21,12 @@ export function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta', { keyPath: 'key' })
+      }
+      if (!db.objectStoreNames.contains('noteVersions')) {
+        const versionStore: IDBObjectStore = db.createObjectStore('noteVersions', {
+          keyPath: 'id',
+        })
+        versionStore.createIndex('noteId', 'noteId', { unique: false })
       }
     }
 

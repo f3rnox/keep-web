@@ -4,6 +4,9 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import type { Note, NoteColor, NoteCipher } from './types'
 import { createNote } from './createNote'
 import { createTask } from './createTask'
+import { deleteNoteVersionsForNote } from './deleteNoteVersionsForNote'
+import { noteVersionFieldsChanged } from './noteVersionFieldsChanged'
+import { recordNoteVersionBeforeSave } from './recordNoteVersionBeforeSave'
 import { clearReminderNotified } from './reminderNotificationStore'
 import { reorderByIds } from './reorderByIds'
 import {
@@ -152,6 +155,17 @@ export function useNotes(): NotesApi {
   const updateNote = useCallback(
     (id: string, patch: NoteUpdate, options?: { recordHistory?: boolean }): void => {
       if ('dueAt' in patch) clearReminderNotified(id)
+
+      const shouldRecordVersion: boolean = options?.recordHistory !== false
+      if (shouldRecordVersion) {
+        const current: Note | undefined = getNotesSnapshot().find(
+          (note: Note): boolean => note.id === id,
+        )
+        if (current !== undefined && noteVersionFieldsChanged(current, patch)) {
+          void recordNoteVersionBeforeSave(current)
+        }
+      }
+
       setNotes(
         (prev: ReadonlyArray<Note>): ReadonlyArray<Note> =>
           prev.map(
@@ -245,6 +259,7 @@ export function useNotes(): NotesApi {
   }, [])
 
   const deleteForever = useCallback((id: string): void => {
+    void deleteNoteVersionsForNote(id)
     setNotes(
       (prev: ReadonlyArray<Note>): ReadonlyArray<Note> =>
         prev.filter((note: Note): boolean => note.id !== id),
@@ -252,6 +267,9 @@ export function useNotes(): NotesApi {
   }, [])
 
   const emptyTrash = useCallback((): void => {
+    for (const note of getNotesSnapshot()) {
+      if (note.trashed) void deleteNoteVersionsForNote(note.id)
+    }
     setNotes(
       (prev: ReadonlyArray<Note>): ReadonlyArray<Note> =>
         prev.filter((note: Note): boolean => !note.trashed),
@@ -333,6 +351,7 @@ export function useNotes(): NotesApi {
 
   const bulkDeleteForever = useCallback((ids: ReadonlyArray<string>): void => {
     const idSet: Set<string> = new Set(ids)
+    for (const id of ids) void deleteNoteVersionsForNote(id)
     setNotes(
       (prev: ReadonlyArray<Note>): ReadonlyArray<Note> =>
         prev.filter((note: Note): boolean => !idSet.has(note.id)),

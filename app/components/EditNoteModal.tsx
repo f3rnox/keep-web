@@ -14,7 +14,7 @@ import {
   type KeyboardEvent,
   type MouseEvent as ReactMouseEvent,
 } from 'react'
-import type { Note, NoteColor, NoteCipher, NoteList } from '../lib/types'
+import type { Note, NoteColor, NoteList, EditNoteSavePatch, NoteVersion } from '../lib/types'
 import { findBacklinks } from '../lib/findBacklinks'
 import { getNoteColorClasses } from '../lib/colors'
 import { handleMarkdownKeyDown } from '../lib/handleMarkdownKeyDown'
@@ -38,6 +38,8 @@ import {
   subscribeGlobalEncryption,
 } from '../lib/globalEncryptionSession'
 import { useMasterPassword } from '../lib/useMasterPassword'
+import { noteVersionToSavePatch } from '../lib/noteVersionToSavePatch'
+import { useNoteVersions } from '../lib/useNoteVersions'
 import { BacklinksPanel } from './BacklinksPanel'
 import { ColorPicker } from './ColorPicker'
 import { DueDatePicker } from './DueDatePicker'
@@ -48,20 +50,8 @@ import { ListPicker } from './ListPicker'
 import { MarkdownToolbar } from './MarkdownToolbar'
 import { NoteContent } from './NoteContent'
 import { PasswordPromptModal } from './PasswordPromptModal'
+import { NoteVersionHistory } from './NoteVersionHistory'
 import { SuggestTitleButton } from './SuggestTitleButton'
-
-/**
- * Fields saved when closing the edit modal.
- */
-export interface EditNoteSavePatch {
-  title: string
-  content: string
-  color: NoteColor
-  labels: ReadonlyArray<string>
-  dueAt: number | null
-  encrypted: boolean
-  cipher: NoteCipher | null
-}
 
 /**
  * How the note editor is mounted in the page.
@@ -130,6 +120,7 @@ export function EditNoteModal({
   const [lockError, setLockError] = useState<string | null>(null)
   const [isEncryptedDraft, setIsEncryptedDraft] = useState<boolean>(encrypted)
   const contentRef = useRef<HTMLTextAreaElement | null>(null)
+  const { versions, loading: versionsLoading, reload: reloadVersions, deleteVersion } = useNoteVersions(note.id)
 
   useEffect((): (() => void) | void => {
     if (!encrypted) return
@@ -190,6 +181,7 @@ export function EditNoteModal({
         encrypted: true,
         cipher: stored.cipher,
       })
+      reloadVersions()
       return
     }
 
@@ -212,6 +204,7 @@ export function EditNoteModal({
         encrypted: true,
         cipher: encryptedFields.cipher,
       })
+      reloadVersions()
       return
     }
 
@@ -224,7 +217,50 @@ export function EditNoteModal({
       encrypted: false,
       cipher: null,
     })
-  }, [unlocked, isEncryptedDraft, note, title, content, color, labels, dueAt, onSave])
+    reloadVersions()
+  }, [unlocked, isEncryptedDraft, note, title, content, color, labels, dueAt, onSave, reloadVersions])
+
+  const handleRestoreVersion = useCallback(
+    async (version: NoteVersion): Promise<void> => {
+      const patch: EditNoteSavePatch = noteVersionToSavePatch(version)
+
+      if (version.encrypted) {
+        const key: CryptoKey | undefined = encryptionSession.getSessionKey(note.id)
+        if (key) {
+          const versionNote: Note = {
+            ...note,
+            title: patch.title,
+            content: patch.content,
+            encrypted: true,
+            cipher: patch.cipher,
+          }
+          const decrypted = await decryptNoteContentWithKey(versionNote, key)
+          setTitle(patch.title)
+          setContent(decrypted.content)
+          encryptionSession.setSessionContent(note.id, decrypted.content)
+          setUnlocked(true)
+          setIsEncryptedDraft(true)
+        } else {
+          setTitle(patch.title)
+          setContent('')
+          setUnlocked(false)
+          setIsEncryptedDraft(true)
+        }
+      } else {
+        setTitle(patch.title)
+        setContent(patch.content)
+        setIsEncryptedDraft(false)
+        setUnlocked(true)
+      }
+
+      setLabels(patch.labels)
+      setColor(patch.color)
+      setDueAt(patch.dueAt)
+      onSave(note.id, patch)
+      reloadVersions()
+    },
+    [note, onSave, reloadVersions],
+  )
 
   const close = useCallback((): void => {
     void persist().finally((): void => onClose())
@@ -389,7 +425,7 @@ export function EditNoteModal({
           : 'h-dvh max-h-dvh w-full max-w-3xl rounded-t-2xl border border-border shadow-2xl shadow-black/20 sm:h-auto sm:max-h-[90vh] sm:rounded-2xl'
       }`}
     >
-          <div className='flex items-start justify-between gap-2 px-4 pt-3 sm:px-5 sm:pt-4'>
+          <div className='shrink-0 flex items-start justify-between gap-2 px-4 pt-3 sm:px-5 sm:pt-4'>
             <div className='flex min-w-0 flex-1 items-center gap-2'>
               {isEncryptedDraft ? (
                 <span className='shrink-0 text-muted' title='Password protected'>
@@ -439,8 +475,9 @@ export function EditNoteModal({
             </div>
           </div>
 
-          <div className={`flex min-h-0 flex-1 ${showPreview && unlocked ? 'flex-col lg:flex-row' : 'flex-col'}`}>
-            <div className={`flex min-h-0 flex-col ${showPreview && unlocked ? 'lg:w-1/2 lg:border-r lg:border-border' : 'w-full'}`}>
+          <div className='min-h-0 flex-1 overflow-y-auto'>
+          <div className={`flex ${showPreview && unlocked ? 'flex-col lg:flex-row' : 'flex-col'}`}>
+            <div className={`flex min-h-[200px] flex-col sm:min-h-[240px] ${showPreview && unlocked ? 'lg:w-1/2 lg:border-r lg:border-border' : 'w-full'}`}>
               {unlocked ? (
                 <>
                   <div className='px-4 pt-2 sm:px-5'>
@@ -464,7 +501,7 @@ export function EditNoteModal({
                     onDrop={handleDrop}
                     placeholder='Write something... Use [[Note Title]] to link notes.'
                     rows={showPreview ? 10 : 8}
-                    className='min-h-[160px] w-full flex-1 resize-none bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none placeholder:text-muted sm:min-h-[200px] sm:px-5'
+                    className='min-h-[160px] w-full flex-1 resize-none overflow-y-auto bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none placeholder:text-muted sm:min-h-[200px] sm:px-5'
                   />
                 </>
               ) : (
@@ -540,7 +577,19 @@ export function EditNoteModal({
 
           <BacklinksPanel backlinks={backlinks} onOpen={onOpenNote} />
 
-          <div className='safe-bottom relative flex flex-col gap-2 px-3 pt-1 sm:flex-row sm:items-center sm:justify-between'>
+          <NoteVersionHistory
+            versions={versions}
+            loading={versionsLoading}
+            onRestore={(version: NoteVersion): void => {
+              void handleRestoreVersion(version)
+            }}
+            onDelete={(version: NoteVersion): void => {
+              void deleteVersion(version.id)
+            }}
+          />
+          </div>
+
+          <div className='safe-bottom relative flex shrink-0 flex-col gap-2 border-t border-border px-3 pt-1 sm:flex-row sm:items-center sm:justify-between'>
             <div className='flex flex-wrap items-center gap-1'>
               <ListPicker
                 listId={note.listId}

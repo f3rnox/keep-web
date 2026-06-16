@@ -65,6 +65,41 @@ export interface NoteCipher {
 }
 
 /**
+ * Versionable note fields captured in per-note history snapshots.
+ */
+export interface NoteVersionFields {
+  title: string
+  content: string
+  labels: ReadonlyArray<string>
+  color: NoteColor
+  dueAt: number | null
+  encrypted: boolean
+  cipher: NoteCipher | null
+}
+
+/**
+ * A persisted snapshot of a note's editable content before a save.
+ */
+export interface NoteVersion extends NoteVersionFields {
+  id: string
+  noteId: string
+  savedAt: number
+}
+
+/**
+ * Fields saved when closing the note editor.
+ */
+export interface EditNoteSavePatch {
+  title: string
+  content: string
+  color: NoteColor
+  labels: ReadonlyArray<string>
+  dueAt: number | null
+  encrypted: boolean
+  cipher: NoteCipher | null
+}
+
+/**
  * A single user-authored note persisted to local storage.
  */
 export interface Note {
